@@ -21,14 +21,24 @@ public class CadastrarVersao extends HttpServlet {
 		
 		if ("Pesquisar".equals(operacao)) {
 			resp.getWriter().write(prepararPaginaConsulta());
-		} else {
+		}else if ("editar".equals(operacao)) {
+            Integer codigo = Integer.parseInt(req.getParameter("codigo"));
+            VersaoDao dao = new VersaoDao();
+            Versao versao = dao.buscarPorCodigo(codigo); // método que retorna uma Versao pelo código
+            resp.getWriter().write(prepararPaginaEdicao(versao));
+        } else {
 			resp.getWriter().write(prepararPaginaCadastro());
 		}
 	}
 
 	@Override
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		String operacao = req.getParameter("operacao");
+        String methodOverride = req.getParameter("_method");
+        if ("PUT".equalsIgnoreCase(methodOverride)) {
+            doPut(req, resp);
+            return;
+        }
+        String operacao = req.getParameter("operacao");
 		VersaoDao dao = new VersaoDao(); 
 		
 		if("cadastrar".equals(operacao)) {
@@ -58,6 +68,65 @@ public class CadastrarVersao extends HttpServlet {
 		resp.sendRedirect("cadastrarVersao?operacao=Pesquisar");
 	}
 
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String operacao = req.getParameter("operacao");
+        VersaoDao dao = new VersaoDao();
+
+        if("cadastrar".equals(operacao)) {
+            Integer codigo = Integer.parseInt(req.getParameter("codigo"));
+            String nome = req.getParameter("nome");
+            Integer ano = Integer.parseInt(req.getParameter("ano"));
+            String novidades = req.getParameter("novidades");
+            String problemasResolvidos = req.getParameter("problemasResolvidos");
+
+
+            Versao versao = new Versao();
+            versao.setCodigo(codigo);
+            versao.setNome(nome);
+
+            versao.setAno(ano);
+            versao.setNovidades(novidades);
+            versao.setProblemasResolvidos(problemasResolvidos);
+
+
+            dao.atualizar(versao);
+
+        } else if ("excluir".equals(operacao)) {
+            Integer codigo = Integer.parseInt(req.getParameter("id"));
+            dao.excluir(codigo);
+        }
+
+        resp.sendRedirect("cadastrarVersao?operacao=Pesquisar");
+    }
+    private String prepararPaginaEdicao(Versao v) {
+        StringBuilder html = new StringBuilder();
+        html.append(gerarCabecalhoHTML("Editar Versão"));
+        html.append("<div class='container'>");
+        html.append("  <fieldset>");
+        html.append("    <legend>Editar Versão</legend>");
+        html.append("    <form action='cadastrarVersao' method='post' onsubmit='this.method=\"post\"; this._method.value=\"PUT\";'>");
+        html.append("      <input type='hidden' name='_method' value='PUT'>");
+        html.append("      <input type='hidden' name='operacao' value='cadastrar'>");
+        html.append("      <label for='codigo'>Código:</label>");
+        html.append("      <input type='number' id='codigo' name='codigo' value='").append(v.getCodigo()).append("' readonly><br>");
+        html.append("      <label for='nome'>Nome:</label>");
+        html.append("      <input type='text' id='nome' name='nome' value='").append(v.getNome()).append("' required><br>");
+        html.append("      <label for='ano'>Ano:</label>");
+        html.append("      <input type='number' id='ano' name='ano' value='").append(v.getAno()).append("' required><br>");
+        html.append("      <label for='novidades'>Novidades:</label>");
+        html.append("      <input type='text' id='novidades' name='novidades' value='").append(v.getNovidades()).append("' required><br>");
+        html.append("      <label for='problemasResolvidos'>Problemas Resolvidos:</label>");
+        html.append("      <input type='text' id='problemasResolvidos' name='problemasResolvidos' value='").append(v.getProblemasResolvidos()).append("' required><br>");
+        html.append("      <input type='submit' value='Salvar Alterações'>");
+        html.append("    </form>");
+        html.append("  </fieldset>");
+        html.append("  <div class='actions-container'>");
+        html.append("    <a href='cadastrarVersao?operacao=Pesquisar' class='link-primary'>&#8592; Voltar</a>");
+        html.append("  </div>");
+        html.append("</div>");
+        html.append("</body></html>");
+        return html.toString();
+    }
 	private String gerarCabecalhoHTML(String titulo) {
 		return "<!DOCTYPE html>"
 			+ "<html lang='pt-br'>"
@@ -148,24 +217,32 @@ public class CadastrarVersao extends HttpServlet {
 		html.append("          <table>");
 	
 		html.append("              <tr><th>Código</th><th>Nome</th><th>Ano</th><th>Novidades</th><th>Problemas Resolvidos</th><th>Ação</th></tr>");
-		
-		for (Versao v : versaoList) {
-			html.append("              <tr>");
-			html.append("                  <td>").append(v.getCodigo()).append("</td>");
-			html.append("                  <td>").append(v.getNome()).append("</td>");
-		
-			html.append("                  <td>").append(v.getAno()).append("</td>");
-			html.append("                  <td>").append(v.getNovidades()).append("</td>");
-			html.append("                  <td>").append(v.getProblemasResolvidos()).append("</td>");
-			html.append("                  <td>");
-			html.append("                      <form action='cadastrarVersao' method='post' style='margin:0;'>");
-			html.append("                          <input type='hidden' name='operacao' value='excluir'>");
-			html.append("                          <input type='hidden' name='id' value='").append(v.getCodigo()).append("'>");
-			html.append("                          <input type='submit' value='Excluir'>");
-			html.append("                      </form>");
-			html.append("                  </td>");
-			html.append("              </tr>");
-		}
+
+        for (Versao v : versaoList) {
+            html.append("              <tr>");
+            html.append("                  <td>").append(v.getCodigo()).append("</td>");
+            html.append("                  <td>").append(v.getNome()).append("</td>");
+            html.append("                  <td>").append(v.getAno()).append("</td>");
+            html.append("                  <td>").append(v.getNovidades()).append("</td>");
+            html.append("                  <td>").append(v.getProblemasResolvidos()).append("</td>");
+            html.append("                  <td style='display:flex; gap:5px;'>");
+
+            // Botão de Editar
+            html.append("                      <form action='cadastrarVersao' method='get' style='margin:0;'>");
+            html.append("                          <input type='hidden' name='operacao' value='editar'>");
+            html.append("                          <input type='hidden' name='codigo' value='").append(v.getCodigo()).append("'>");
+            html.append("                          <input type='submit' value='Editar'>");
+            html.append("                      </form>");
+
+            // Botão de Excluir
+            html.append("                      <form action='cadastrarVersao' method='post' style='margin:0;'>");
+            html.append("                          <input type='hidden' name='operacao' value='excluir'>");
+            html.append("                          <input type='hidden' name='id' value='").append(v.getCodigo()).append("'>");
+            html.append("                          <input type='submit' value='Excluir'>");
+            html.append("                      </form>");
+            html.append("                  </td>");
+            html.append("              </tr>");
+        }
 		
 		html.append("          </table>");
 		html.append("      </fieldset>");
