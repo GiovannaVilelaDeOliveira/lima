@@ -31,3 +31,4 @@ private static List<Versao> versaoList = new ArrayList<Versao>();
 	}
 
 }
+
